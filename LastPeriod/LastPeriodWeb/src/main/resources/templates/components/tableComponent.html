@@ -1,0 +1,12 @@
+<div th:fragment="meta_table(createFlg, editFlg, deleteFlg)">
+	<div class="buttonArea">
+		<el-button @click="searchTableData">{{label.searchBtn}}</el-button>
+		<el-button @click="clearForm">{{label.clearFormBtn}}</el-button>
+		<el-button th:v-show="${createFlg}" @click="createPageMove">{{label.addBtn}}</el-button>
+	</div>
+	<el-table :data="tableData" empty-text="対象データなし" @row-click="detailPageMove" height="450">
+		<el-table-column v-for="column in columnList" :prop="column.prop"
+			:label="column.label" :width="column.width" :show-overflow-tooltip="true"
+			:align="column.align"></el-table-column>
+	</el-table>
+</div>

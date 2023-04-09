@@ -1,0 +1,19 @@
+@charset "UTF-8";
+
+.menu {
+	width: 300px;
+	height: 100%;
+}
+
+.menu ul {
+	height: 100%;
+}
+
+.menu .el-submenu__title {
+	font-weight: bold;
+	font-size: 18px;
+}
+
+.menu .el-menu-item-group__title {
+	font-size: 18px;
+}

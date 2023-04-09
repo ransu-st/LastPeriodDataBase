@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="common/template :: meta_body('ユニット一覧',~{::body/content()},~{::link},~{::script})">
+	<head>
+		<link rel="stylesheet" th:href="@{/css/unitList.css}"/>
+	</head>
+	<body>
+		<div id="content">
+
+			<h1>{{label.title}}</h1>
+
+			<!-- 検索条件入力フォーム -->
+			<el-form v-model="unitSearchForm" label-width="200px">
+
+				<el-form-item class="searchFormItem" :label="label.name" prop="name">
+					<el-input v-model="unitSearchForm.name" style="width: 217px"></el-input>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.sex" prop="sex">
+					<el-select v-model="unitSearchForm.sex" :placeholder="label.select" multiple>
+						<el-option v-for="item in options.sex" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.rea" prop="rea">
+					<el-select v-model="unitSearchForm.rea" :placeholder="label.select" multiple>
+						<el-option v-for="item in options.rea" :label="'★' + item" :value="item" :key="item">
+						</el-option>
+					</el-select>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.realm" prop="realm">
+					<el-select v-model="unitSearchForm.realm" :placeholder="label.select" multiple>
+						<el-option v-for="item in options.realm" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.type" prop="type">
+					<el-select v-model="unitSearchForm.type" :placeholder="label.select" multiple>
+						<el-option v-for="item in options.type" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.attribute" prop="attribute">
+					<el-select v-model="unitSearchForm.attribute" :placeholder="label.select" multiple>
+						<el-option v-for="item in options.attribute" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+				</el-form-item>
+
+			</el-form>
+
+			<!-- テーブル表示 -->
+			<div th:replace="components/tableComponent :: meta_table(true, true, true)">
+			</div>
+
+		</div>
+		<script type="application/javascript" th:inline="javascript">
+			/*<![CDATA[*/
+				new Vue({
+					el:'#content',
+					data: {
+						unitSearchForm: {},
+						tableData: null,
+						columnList: [
+							{prop: 'name', label: 'ユニット名', width:'auto', align: 'left'},
+							{prop: 'sex', label: '性別', width:'70px', align: 'center'},
+							{prop: 'rea', label: 'レア度', width:'70px', align: 'center'},
+							{prop: 'realm', label: '所属レルム', width:'150px', align: 'center'},
+							{prop: 'attribute', label: '属性', width:'70px', align: 'center'},
+							{prop: 'type', label: 'タイプ', width:'150px', align: 'center'},
+							{prop: 'hp', label: 'HP', width:'100px', align: 'center'},
+							{prop: 'attack', label: '攻撃力', width:'100px', align: 'center'},
+							{prop: 'speed', label: 'スピード', width:'100px', align: 'center'},
+							{prop: 'numberOfAttackStages', label: '攻撃段数', width:'100px', align: 'center'}
+						],
+						label: {
+							title: 'ユニット一覧',
+							name: '名前',
+							sex: '性別',
+							rea: 'レア度',
+							realm: '所属レルム',
+							attribute: '属性',
+							type: 'タイプ',
+							searchBtn: '検索',
+							addBtn: '新規登録',
+							deleteBtn: '削除',
+							select: '選択',
+							clearFormBtn: 'クリア',
+							xAxis: 'X軸',
+							yAxis: 'Y軸'
+						},
+						options: {
+							sex: /*[[${sex}]]*/[],
+							rea: [1,2,3,4,5],
+							realm: /*[[${realms}]]*/[],
+							type: /*[[${types}]]*/[],
+							attribute: /*[[${attributes}]]*/[],
+							status: /*[[${status}]]*/[],
+						}
+					},
+					methods: {
+						searchTableData() {
+
+							let param = {};
+							for (let key in this.unitSearchForm) {
+								if (this.unitSearchForm[key]) {
+									param[key] = this.unitSearchForm[key];
+								}
+							}
+
+							let _this = this;
+							$.ajax({
+								type: 'GET',
+								url: 'getUnitDataList',
+								data: param,
+								dataType: 'json',
+							}).then(function(result) {
+								if (result.code == 200) {
+									_this.tableData = result.data;
+								} else {
+									_this.$message({
+										type: 'error',
+										message: result.message
+									})
+								}
+							}, function () {
+								_this.$message({
+									type: 'error',
+									message: '画面エラー'
+								})
+							})
+						},
+						createPageMove() {
+							location.href = 'unitCreateAndEditPage';
+						},
+						detailPageMove(row) {
+							location.href = 'unitCreateAndEditPage?id=' + row.id;
+						},
+						clearForm() {
+							this.unitSearchForm = {};
+						}
+
+					},
+					created() {
+						this.searchTableData();
+					}
+				})
+			/*]]>*/
+		</script>
+	</body>
+</html>

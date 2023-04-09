@@ -1,0 +1,11 @@
+@charset "UTF-8";
+
+.loginContent {
+	text-align: center;
+	overflow: hidden;
+}
+
+.loginForm {
+	width: 500px;
+	margin: 20px auto;
+}

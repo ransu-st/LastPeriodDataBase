@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="meta_body(title,body,link,script)">
+	<head th:replace="common/header :: meta_header(${title},~{::link},~{::script})">
+	</head>
+	<body>
+		<div class="header">ラストピリオード攻略サイト</div>
+	    <div id="app">
+			<!-- menu テンプレート表示 -->
+			<div id="menu" class=menu>
+				<el-menu default-active="1" :default-active="targetMenu">
+					<el-submenu v-for="(menu, mIndex) in menus" :index="String(mIndex)" :title="menu" :key="mIndex">
+						<template slot="title">
+							{{menu.name}}
+						</template>
+						<el-menu-item-group>
+							<el-menu-item v-for="(submenu, sIndex) in menu.submenus" :index="mIndex + '-' + sIndex" :key="mIndex + '-' + sIndex" @click="pageMove(mIndex + '-' + sIndex, submenu.url)">
+								{{submenu.name}}
+							</el-menu-item>
+						</el-menu-item-group>
+					</el-submenu>
+				</el-menu>
+			</div>
+
+			<!-- 各ページ本体 -->
+			<div th:replace="${body}"></div>
+
+	    </div>
+	</body>
+	<script type="application/javascript" th:inline="javascript">
+		/*<![CDATA[*/
+		let bodyFunc = new Vue({
+			el: '#menu',
+			data: {
+				targetMenu: null,
+				menus: [
+					// ユニットメニュー
+					{
+						name: 'ユニット',
+						submenus: [
+							{name: 'ユニット一覧',url: 'unitListPage'},
+							{name: 'ユニット比較表示',url: 'unitComparisonPage'}
+						]
+					},
+					// レガリアメニュー
+					{
+						name: 'レガリア',
+						submenus: [
+							{name: 'レガリア一覧',url: ''},
+							{name: 'レガリア比較表示',url: ''}
+						]
+					}
+				]
+			},
+			methods: {
+				pageMove(index, url) {
+					this.targetMenu = index;
+					location.href = url;
+				}
+			}
+		})
+		/*]]>*/
+	</script>
+</html>

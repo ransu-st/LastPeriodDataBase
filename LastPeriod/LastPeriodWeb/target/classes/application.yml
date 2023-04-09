@@ -1,0 +1,8 @@
+server:
+  port: 8181
+  servlet:
+    context-path: /lastperiod
+
+spring:  data:    mongodb:      user: ransu
+      password: artemis7946
+      uri: mongodb://localhost:27017/LastPeriod

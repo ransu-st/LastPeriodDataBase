@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="common/template :: meta_body('ユニット一覧',~{::body/content()},~{::link},~{::script})">
+	<head>
+		<link rel="stylesheet" th:href="@{/css/unitList.css}"/>
+	</head>
+	<body>
+		<div id="content">
+
+			<h1>{{label.title}}</h1>
+
+			<el-form v-model="unitSearchForm" label-width="200px">
+
+				<el-form-item class="searchFormItem" :label="label.name" prop="name">
+					<el-input v-model="unitSearchForm.name" style="width: 217px"></el-input>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.sex" prop="sex">
+					<el-select v-model="unitSearchForm.sex" :placeholder="label.select" multiple>
+						<el-option v-for="item in options.sex" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.rea" prop="rea">
+					<el-select v-model="unitSearchForm.rea" :placeholder="label.select" multiple>
+						<el-option v-for="item in options.rea" :label="'★' + item" :value="item" :key="item">
+						</el-option>
+					</el-select>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.realm" prop="realm">
+					<el-select v-model="unitSearchForm.realm" :placeholder="label.select" multiple>
+						<el-option v-for="item in options.realm" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.type" prop="type">
+					<el-select v-model="unitSearchForm.type" :placeholder="label.select" multiple>
+						<el-option v-for="item in options.type" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.attribute" prop="attribute">
+					<el-select v-model="unitSearchForm.attribute" :placeholder="label.select" multiple>
+						<el-option v-for="item in options.attribute" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.level" prop="level">
+					<el-input v-model="unitSearchForm.level" style="width: 217px"></el-input>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.xAxis" prop="xAxis">
+					<el-select v-model="unitSearchForm.xAxis" :placeholder="label.select">
+						<el-option v-for="item in options.status" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+				</el-form-item>
+
+				<el-form-item class="searchFormItem" :label="label.yAxis" prop="yAxis">
+					<el-select v-model="unitSearchForm.yAxis" :placeholder="label.select">
+						<el-option v-for="item in options.status" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+				</el-form-item>
+			</el-form>
+
+			<div class="buttonArea">
+				<el-button @click="getUnitGraphData">{{label.searchBtn}}</el-button>
+				<el-button @click="clearForm">{{label.clearFormBtn}}</el-button>
+			</div>
+
+			<canvas id="unitChart"></canvas>
+		</div>
+		<script type="application/javascript" th:inline="javascript">
+			/*<![CDATA[*/
+				new Vue({
+					el:'#content',
+					data: {
+						unitSearchForm: {
+							xAxis: '5ffae1eddb3c2760faf433ab',
+							yAxis: '5ffae1e1db3c2760faf433a2'
+						},
+						unitDatas: null,
+						label: {
+							title: 'ユニット一覧',
+							name: '名前',
+							sex: '性別',
+							rea: 'レア度',
+							realm: '所属レルム',
+							attribute: '属性',
+							type: 'タイプ',
+							level: 'レベル',
+							searchBtn: '検索',
+							addBtn: '新規登録',
+							deleteBtn: '削除',
+							select: '選択',
+							clearFormBtn: 'クリア',
+							xAxis: 'X軸',
+							yAxis: 'Y軸'
+						},
+						options: {
+							sex: /*[[${sex}]]*/[],
+							rea: [1,2,3,4,5],
+							realm: /*[[${realms}]]*/[],
+							type: /*[[${types}]]*/[],
+							attribute: /*[[${attributes}]]*/[],
+							status: /*[[${status}]]*/[],
+						},
+						unitChart: null,
+					},
+					methods: {
+						getUnitGraphData() {
+
+							let param = {};
+							for (let key in this.unitSearchForm) {
+								if (this.unitSearchForm[key]) {
+									param[key] = this.unitSearchForm[key];
+								}
+							}
+
+							let _this = this;
+							$.ajax({
+								type: 'GET',
+								url: 'getUnitGraphData',
+								data: param,
+								dataType: 'json',
+							}).then(function(result) {
+								if (result.code == 200) {
+									_this.unitDatas = result.data;
+									_this.createUnitChart();
+								} else {
+									_this.$message({
+										type: 'error',
+										message: result.message
+									})
+								}
+							}, function () {
+								_this.$message({
+									type: 'error',
+									message: '画面エラー'
+								})
+							})
+						},
+						clearForm() {
+							this.unitSearchForm = {
+								xAxis: '5ffae1eddb3c2760faf433ab',
+								yAxis: '5ffae1e1db3c2760faf433a2'
+							};
+						},
+						createUnitChart() {
+
+							// グラフがすでに作られている場合は破棄
+							if(this.unitChart) {
+								this.unitChart.destroy();
+							}
+
+							let datasets = [];
+							for (unitData of this.unitDatas) {
+								let data = {};
+								data.label = unitData.label;
+								data.data = [unitData.data];
+								datasets.push(data);
+							}
+
+							let xLabel;
+							let yLabel;
+							for (let status of this.options.status) {
+								if (this.unitSearchForm.xAxis == status.id) {
+									xLabel = status.name;
+								}
+								if (this.unitSearchForm.yAxis == status.id) {
+									yLabel = status.name;
+								}
+							}
+							let options = {
+								legend: {
+									display: false
+								},
+
+								scales: {
+									xAxes: [{
+										scaleLabel: {
+											display: true,
+											labelString: xLabel,
+										}
+									}],
+									yAxes: [{
+										scaleLabel: {
+											display: true,
+											labelString: yLabel,
+										}
+									}]
+								},
+
+								tooltips :{
+									callbacks: {
+										// ツールチップの表示内容
+										label: function(tooltipItem, data) {
+											// グループ名
+											let groupName = data.datasets[tooltipItem.datasetIndex].label;
+											// X 軸ラベル
+											let xAxesLabel = options.scales.xAxes[0].scaleLabel.labelString;
+											// y 軸ラベル
+											let yAxesLabel = options.scales.yAxes[0].scaleLabel.labelString;
+											return ` ${groupName} (${xAxesLabel}: ${tooltipItem.label}, ${yAxesLabel}: ${tooltipItem.value})`;
+										}
+									}
+								}
+							};
+							this.unitChart = this.createChart('unitChart', {datasets}, options);
+						},
+						createChart(contentId, data, options) {
+							let doc = document.getElementById(contentId).getContext('2d');
+							return new Chart(doc, {
+								type: 'scatter',
+								data: data,
+								options: options
+							})
+						}
+
+					},
+					created() {
+						this.getUnitGraphData();
+					}
+				})
+			/*]]>*/
+		</script>
+	</body>
+</html>

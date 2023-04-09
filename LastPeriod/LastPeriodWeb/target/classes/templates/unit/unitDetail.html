@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="common/template :: meta_body('ユニット編集・詳細',~{::body/content()},~{::link},~{::script})">
+	<head>
+		<link rel="stylesheet" th:href="@{/css/unitDetail.css}"/>
+	</head>
+	<body>
+		<div id="content">
+
+			<h1>{{label.title}}</h1>
+
+			<!-- unitFormエリア -->
+			<el-form :model="unitForm" :rules="rules" ref="unitForm" label-width="200px">
+				<el-form-item :label="label.name" prop="name">
+					<el-input v-model="unitForm.name"></el-input>
+				</el-form-item>
+
+				<el-form-item :label="label.sex" prop="sex">
+					<el-select v-model="unitForm.sex" :placeholder="label.select">
+						<el-option v-for="item in options.sex" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+					<el-button @click="createDataModalOpen(label.sex)">{{label.addAndUpdateBtn}}</el-button>
+				</el-form-item>
+
+				<el-form-item :label="label.rea" prop="rea">
+					<el-select v-model="unitForm.rea" :placeholder="label.select" @change="changeUnitRea">
+						<el-option v-for="item in 5" :label="'★' + item" :value="item" :key="item">
+						</el-option>
+					</el-select>
+				</el-form-item>
+
+				<el-form-item :label="label.limited" prop="limited">
+					<el-checkbox v-model="unitForm.limited"></el-checkbox>
+				</el-form-item>
+
+				<el-form-item :label="label.realm" prop="realm">
+					<el-select v-model="unitForm.realm" :placeholder="label.select">
+						<el-option v-for="item in options.realm" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+					<el-button @click="createDataModalOpen(label.realm)">{{label.addAndUpdateBtn}}</el-button>
+				</el-form-item>
+
+				<el-form-item :label="label.type" prop="type">
+					<el-select v-model="unitForm.type" :placeholder="label.select">
+						<el-option v-for="item in options.type" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+					<el-button @click="createDataModalOpen(label.type)">{{label.addAndUpdateBtn}}</el-button>
+				</el-form-item>
+
+				<el-form-item :label="label.attribute" prop="attribute">
+					<el-select v-model="unitForm.attribute" :placeholder="label.select">
+						<el-option v-for="item in options.attribute" :label="item.name" :value="item.id" :key="item.id">
+						</el-option>
+					</el-select>
+					<el-button @click="createDataModalOpen(label.attribute)">{{label.addAndUpdateBtn}}</el-button>
+				</el-form-item>
+
+				<div style="margin-left:200px" class="precautionaryStatementFont">{{label.statusInputNote}}</div>
+				<el-form-item :label="label.hp" prop="hp">
+					<el-input-number class="inputNumberLeftAlign" v-model="unitForm.hp" :controls="false"></el-input-number>
+				</el-form-item>
+
+				<el-form-item :label="label.attack" prop="attack">
+					<el-input-number class="inputNumberLeftAlign" v-model="unitForm.attack" :controls="false"></el-input-number>
+				</el-form-item>
+
+				<el-form-item :label="label.speed" prop="speed">
+					<el-input-number class="inputNumberLeftAlign" v-model="unitForm.speed" :controls="false"></el-input-number>
+				</el-form-item>
+
+				<!-- アビリティ 1～3 -->
+				<el-form-item v-for="index in abilityLen" :label="label.abilities + index" prop="abilities">
+					<el-select v-model="unitForm['ability' + index]" :placeholder="label.select">
+						<template v-for="item in options.abilities">
+							<el-option v-if="item.abilitySlot == index
+									&& (unitForm.realm != '5febbc3956f8b5727d97253f' && !item.artAbility || unitForm.realm == '5febbc3956f8b5727d97253f' && item.artAbility)"
+									:label="item.name" :value="item.id" :key="item.id">
+							</el-option>
+						</template>
+					</el-select>
+					<el-button @click="createDataModalOpen(label.abilities, index)">{{label.addAndUpdateBtn}}</el-button>
+				</el-form-item>
+
+				<!-- ボード -->
+				<div class="boardList" v-for="(board, index) in unitForm.boards">
+					<!-- ボード効果選択(一個目の表示) -->
+					<el-form-item v-if="index == 0" :label="label.boards" prop="boards">
+						<el-select v-model="board.boardId" :placeholder="label.select">
+							<el-option v-for="item in options.boards" :label="item.name" :value="item.id" :key="item.id"></el-option>
+						</el-select>
+						<el-button @click="createDataModalOpen(label.boards)">{{label.addAndUpdateBtn}}</el-button>
+					</el-form-item>
+
+					<!-- ボード効果選択(二個目以降の表示) -->
+					<el-form-item v-else label="" prop="boards">
+						<el-select v-model="board.boardId" :placeholder="label.select">
+							<el-option v-for="item in options.boards" :label="item.name" :value="item.id" :key="item.id"></el-option>
+						</el-select>
+						<el-button @click="createDataModalOpen(label.boards)">{{label.addAndUpdateBtn}}</el-button>
+					</el-form-item>
+
+					<!-- ボード対象の効果の個数 -->
+					<el-form-item :label="label.quantity" prop="boards">
+						<el-input v-model="board.quantity"></el-input>
+					</el-form-item>
+				</div>
+				<!-- ボード効果入力欄追加・削除ボタン -->
+				<div class="boardAddAndDeleteBtnArea">
+					<el-button @click="boardAdd()">{{label.boardAddBtn}}</el-button>
+					<el-button @click="boardDelete()" :disabled="unitForm.boards.length == 0">{{label.boardDeleteBtn}}</el-button>
+				</div>
+
+				<!-- イレギュラーフラグ -->
+				<el-form-item :label="label.irregular" prop="irregular">
+					<el-checkbox v-model="unitForm.irregular"></el-checkbox>
+				</el-form-item>
+
+				<!-- 攻撃段数 -->
+				<el-form-item :label="label.numberOfAttackStages" prop="numberOfAttackStages">
+					<el-input-number class="inputNumberLeftAlign" v-model="unitForm.numberOfAttackStages" :controls="false" :step="1" step-strictly></el-input-number>
+				</el-form-item>
+
+				<el-form-item class="buttonArea">
+					<el-button type="primary" @click="createAndUpdateAndDeleteUnit()">
+						<template v-if="unitForm.id">{{label.updateBtn}}</template>
+						<template v-else>{{label.addBtn}}</template>
+					</el-button>
+					<el-button @click="createAndUpdateAndDeleteUnit(true)">{{label.deleteBtn}}</el-button>
+					<el-button @click="pageReturn()">{{label.returnBtn}}</el-button>
+				</el-form-item>
+
+			</el-form>
+
+			<!-- modalエリア -->
+			<el-dialog :title="targetColumn" :visible.sync="modal" width="50%">
+
+				<el-form :model="targetForm" :rules="rules" ref="targetForm" label-width="200px">
+
+					<el-form-item :label="label.updateTarget" prop="updateTarget">
+						<el-select v-model="targetForm" value-key="id" :placeholder="label.select">
+							<el-option v-if="targetColumn == label.sex" v-for="item in options.sex" :label="item.name" :value="item" :key="item.id"></el-option>
+							<el-option v-if="targetColumn == label.realm" v-for="item in options.realm" :label="item.name" :value="item" :key="item.id"></el-option>
+							<el-option v-if="targetColumn == label.type" v-for="item in options.type" :label="item.name" :value="item" :key="item.id"></el-option>
+							<el-option v-if="targetColumn == label.attribute" v-for="item in options.attribute" :label="item.name" :value="item" :key="item.id"></el-option>
+							<el-option v-if="targetColumn == label.abilities" v-for="item in options.abilities" :label="item.name" :value="item" :key="item.id"></el-option>
+							<el-option v-if="targetColumn == label.boards" v-for="item in options.boards" :label="item.name" :value="item" :key="item.id"></el-option>
+						</el-select>
+					</el-form-item>
+
+					<div class="modalInputFormArea">
+
+						<el-form-item :label="label.name" prop="name">
+							<el-input v-model="targetForm.name"/>
+						</el-form-item>
+
+						<!-- アビリティのスロット番号 と アートアビリティフラグ -->
+						<template v-if="targetColumn == label.abilities">
+							<el-form-item :label="label.abilitySlot" prop="abilitySlot">
+								<el-select v-model="targetForm.abilitySlot" :placeholder="label.select">
+									<el-option v-for="item in options.abilitySlot" :label="'アビリティ' + item" :value="item" :key="item">
+								</el-select>
+							</el-form-item>
+							<el-form-item :label="label.artAbility" prop="artAbility">
+								<el-checkbox v-model="targetForm.artAbility"></el-checkbox>
+							</el-form-item>
+						</template>
+
+						<template v-if="targetColumn == label.boards || targetColumn == label.abilities">
+
+							<!-- 発動に必要な覚醒数入力 -->
+							<template v-if="targetColumn == label.abilities">
+
+								<!-- アビリティレベルの最大値 -->
+								<el-form-item :label="label.maxLevel" prop="maxLevel">
+									<el-select v-model="targetForm.maxLevel" :placeholder="label.select" @change="changeMaxLevel">
+										<el-option v-for="item in 5" :label="'Lv : ' + item" :value="item" :key="item">
+										</el-option>
+									</el-select>
+								</el-form-item>
+
+								<!-- 各レベルごとに必要な覚醒数 -->
+								<template v-for="stage in targetForm.stages">
+									<el-form-item :label="'Lv : ' + stage.level + ' ' + label.awakening" prop="awakening">
+										<el-input-number class="inputNumberLeftAlign" v-model="stage.awakening" :controls="false"></el-input-number>
+									</el-form-item>
+								</template>
+							</template>
+
+							<!-- 発動条件と対象ステータスと値 -->
+							<template v-for="(effect, effectIndex) in targetForm.effects">
+								<div style="margin-left: 50px">{{(effectIndex + 1) + '個目'}}</div>
+								<el-form-item :label="label.conditions" prop="conditions">
+									<el-select v-model="effect.condition" :placeholder="label.select">
+										<el-option v-for="item in options.conditions" :label="item.name" :value="item.id" :key="item.id">
+									</el-select>
+								</el-form-item>
+								<el-form-item :label="label.status" prop="status">
+									<el-select v-model="effect.status" :placeholder="label.select">
+										<el-option v-for="item in options.status" :label="item.name" :value="item.id" :key="item.id">
+									</el-select>
+								</el-form-item>
+
+								<el-form-item :label="label.arg" prop="arg">
+									<el-input v-model="effect.arg"/>
+								</el-form-item>
+								<el-form-item :label="label.amount" prop="amount">
+									<el-input v-model="effect.amount"/>
+								</el-form-item>
+								<el-form-item :label="label.percentage" prop="percentage">
+									<el-checkbox v-model="effect.percentage"></el-checkbox>
+								</el-form-item>
+							</template>
+
+							<!-- 効果入力欄追加・削除ボタン -->
+							<div class="effectAddAndDeleteBtnArea">
+								<el-button @click="effectAdd()">{{label.effectAddBtn}}</el-button>
+								<el-button @click="effectDelete()" :disabled="targetForm.effects.length == 0">{{label.effectDeleteBtn}}</el-button>
+							</div>
+
+						</template>
+					</div>
+				</el-form>
+
+				<div class="buttonArea">
+					<el-button type="primary" @click="createAndUpdateAndDeleteColumn()">
+						<template v-if="targetForm.id">{{label.updateBtn}}</template>
+						<template v-else>{{label.addBtn}}</template>
+					</el-button>
+					<el-button @click="createAndUpdateAndDeleteColumn(true)" :disabled="!targetForm.id">{{label.deleteBtn}}</el-button>
+					<el-button @click="targetFormClear()">{{label.clearBtn}}</el-button>
+					<el-button @click="closeModal()">{{label.closeBtn}}</el-button>
+				</div>
+			</el-dialog>
+
+
+		</div>
+		<script type="application/javascript" th:inline="javascript">
+			/*<![CDATA[*/
+				new Vue({
+
+					el:'#content',
+
+					data: {
+						unitForm: {},
+						options: {
+							sex: /*[[${sexs}]]*/[],
+							realm: /*[[${realms}]]*/[],
+							type: /*[[${types}]]*/[],
+							attribute: /*[[${attributes}]]*/[],
+							abilities: /*[[${abilities}]]*/[],
+							boards: /*[[${boards}]]*/[],
+							leaderSkill: [],
+							conditions: /*[[${conditions}]]*/[],
+							status: /*[[${status}]]*/[],
+							abilitySlot: [1,2,3]
+						},
+						label: {
+							title: 'ユニット編集・詳細',
+							name: '名前',
+							sex: '性別',
+							rea: 'レア度',
+							limited: '期間限定',
+							realm: '所属レルム',
+							type: 'タイプ',
+							attribute: '属性',
+							hp: 'HP',
+							attack: '攻撃力',
+							speed: 'スピード',
+							abilities: 'アビリティ',
+							boards: 'ボード',
+							leaderSkill: 'リーダースキル',
+							irregular: 'イレギュラー',
+							numberOfAttackStages: '攻撃段数',
+							addAndUpdateBtn: '追加・更新',
+							addBtn: '追加',
+							updateBtn: '更新',
+							deleteBtn: '削除',
+							returnBtn: '戻る',
+							clearBtn: 'クリア',
+							closeBtn: '閉じる',
+							boardAddBtn: 'ボード欄追加',
+							boardDeleteBtn: 'ボード欄削除',
+							effectAddBtn: '効果欄追加',
+							effectDeleteBtn: '効果欄削除',
+							maxLevel: 'アビリティ最大レベル',
+							level: 'レベル',
+							awakening: '必要覚醒数',
+							conditions: '発動条件',
+							status: 'ステータス',
+							arg: '値',
+							amount: '上昇量',
+							percentage: 'パーセント',
+							updateTarget: '更新対象',
+							select: '選択',
+							abilitySlot: 'アビリティスロット',
+							artAbility: 'アートアビリティ',
+							quantity: '個数',
+							statusInputNote: '※ステータスは「レベル1」「覚醒なし」「ボード未開放」のときのものを入力'
+						},
+						rules: {
+							name: [
+								{required: true, message: '必須入力対象', trigger: 'blur'}
+							],
+							sex: [
+								{required: true, message: '必須入力対象', trigger: 'blur'}
+							],
+							rea: [
+								{required: true, message: '必須入力対象', trigger: 'blur'}
+							],
+							realm: [
+								{required: true, message: '必須入力対象', trigger: 'blur'}
+							],
+							type: [
+								{required: true, message: '必須入力対象', trigger: 'blur'}
+							],
+							attribute: [
+								{required: true, message: '必須入力対象', trigger: 'blur'}
+							],
+							hp: [
+								{required: true, message: '必須入力対象', trigger: 'blur'},
+								{type: 'number', message: '半角数字入力のみ', trigger: 'blur'}
+							],
+							attack: [
+								{required: true, message: '必須入力対象', trigger: 'blur'},
+								{type: 'number', message: '半角数字入力のみ', trigger: 'blur'}
+							],
+							speed: [
+								{required: true, message: '必須入力対象', trigger: 'blur'},
+								{type: 'number', message: '半角数字入力のみ', trigger: 'blur'}
+							],
+							numberOfAttackStages: [
+								{required: true, message: '必須入力対象', trigger: 'blur'},
+								{type: 'number', message: '半角数字入力のみ', trigger: 'blur'}
+							],
+						},
+						targetColumn: null,
+						targetForm: {},
+						modal: false,
+						boardQuantity: null,
+						abilityLen: 0
+					},
+
+					methods: {
+
+						// ユニット作成・編集・削除処理
+						async createAndUpdateAndDeleteUnit(deleteFlg = false) {
+							let _this = this;
+							let param = {};
+
+							// 入力チェック
+							let validateFlg;
+							this.$refs['unitForm'].validate((valid) => {
+								if (valid) {
+									validateFlg = false;
+								} else {
+									_this.$message({
+										type: 'error',
+										message: '入力項目に不備があります'
+									})
+									validateFlg = true;
+								}
+							});
+
+							if (validateFlg) {
+								return;
+							}
+
+							for (let key in this.unitForm) {
+								// ObjectIdの項目
+								if (key == 'realm' || key == 'type'
+									|| key == 'attribute' || key == 'abilitiy1'
+									|| key == 'abilitiy2' || key == 'abilitiy3'
+									|| key == 'leaderSkill') {
+
+									if (this.unitForm[key]) {
+										param[key] = this.unitForm[key];
+									}
+								// ボード項目
+								} else if (key == 'boards') {
+
+									param[key] = [];
+									for (board of this.unitForm[key]) {
+										if (Object.keys(board).length) {
+											param[key].push(board);
+										}
+									}
+								} else {
+									param[key] = this.unitForm[key];
+								}
+							}
+
+							// 登録・編集時には重複確認
+							if (!deleteFlg) {
+								let duplicateFlg = await this.duplicateConfirmationUnit(param);
+								if (duplicateFlg) {
+									return;
+
+								}
+							}
+
+							let url;
+							if (deleteFlg) {
+								url = 'unitDelete';
+							} else {
+								url = 'unitCreateAndUpdate';
+							}
+
+							$.ajax({
+								type: 'post',
+								url: url,
+								data: JSON.stringify(param),
+								dataType: 'json',
+								contentType : 'application/json'
+							}).then(function(result) {
+								if (result.code == 200) {
+									if (deleteFlg) {
+										if (result.data) {
+											history.back();
+										} else {
+											_this.$message({
+												type: 'error',
+												message: '削除に失敗しました'
+											})
+										}
+									} else {
+										_this.unitForm = result.data;
+										_this.$message({
+											type: 'success',
+											message: result.message
+										})
+									}
+								} else {
+									_this.$message({
+										type: 'error',
+										message: result.message
+									})
+								}
+							}, function () {
+								_this.$message({
+									type: 'error',
+									message: '画面エラー'
+								})
+							})
+						},
+
+						// ユニットの項目データ登録・編集・削除処理
+						async createAndUpdateAndDeleteColumn(deleteFlg = false) {
+							let param = {};
+
+							// 入力チェック
+							let validateFlg;
+							this.$refs['targetForm'].validate((valid) => {
+								if (valid) {
+									validateFlg = false;
+								} else {
+									_this.$message({
+										type: 'error',
+										message: '入力項目に不備があります'
+									})
+									validateFlg = true;
+								}
+							});
+
+							if (validateFlg) {
+								return;
+							}
+
+							for (let key in this.targetForm) {
+
+								if (key == 'effects') {
+
+									let effects = [];
+									for (let effect of this.targetForm[key]) {
+
+										let effect2 = {};
+										for (let effKey in effect) {
+											if ((effKey == 'condition' || effKey == 'status') && effect[effKey]) {
+												effect2[effKey] = effect[effKey];
+											} else {
+												effect2[effKey] = effect[effKey];
+											}
+										}
+										effects.push(effect2);
+									}
+									param[key] = effects;
+								} else {
+									param[key] = this.targetForm[key];
+								}
+							}
+
+							// 登録・編集時には重複確認
+							if (!deleteFlg) {
+								let duplicateFlg = await this.duplicateConfirmationColumn(param, this.targetColumn);
+								if (duplicateFlg) {
+									return;
+
+								}
+							}
+
+							let url;
+							let key;
+							if (this.targetColumn == this.label.sex) {
+								if (deleteFlg) {
+									url = 'sexDelete';
+								} else {
+									url = 'sexCreateAndUpdate';
+								}
+								key = 'sex';
+							} else if (this.targetColumn == this.label.realm) {
+								if (deleteFlg) {
+									url = 'realmDelete';
+								} else {
+									url = 'realmCreateAndUpdate';
+								}
+								key = 'realm';
+							} else if (this.targetColumn == this.label.type) {
+								if (deleteFlg) {
+									url = 'typeDelete';
+								} else {
+									url = 'typeCreateAndUpdate';
+								}
+								key = 'type';
+							} else if (this.targetColumn == this.label.attribute) {
+								if (deleteFlg) {
+									url = 'attributeDelete';
+								} else {
+									url = 'attributeCreateAndUpdate';
+								}
+								key = 'attribute';
+							} else if (this.targetColumn == this.label.abilities) {
+								if (deleteFlg) {
+									url = 'abilityDelete';
+								} else {
+									url = 'abilityCreateAndUpdate';
+								}
+								key = 'abilities';
+							} else if (this.targetColumn == this.label.boards) {
+								if (deleteFlg) {
+									url = 'boardDelete';
+								} else {
+									url = 'boardCreateAndUpdate';
+								}
+								key = 'boards';
+							}
+
+							let _this = this;
+							$.ajax({
+								type: 'post',
+								url: url,
+								data: JSON.stringify(param),
+								dataType: 'json',
+								contentType : 'application/json'
+							}).then(function(result) {
+								if (result.code == 200) {
+									if (deleteFlg) {
+										if (result.data) {
+											_this.options[key] = _this.options[key].filter(value => value.id != _this.targetForm.id);
+											_this.targetFormClear();
+											_this.$message({
+												type: 'success',
+												message: result.message
+											})
+										} else {
+											_this.$message({
+												type: 'error',
+												message: '処理に失敗しました(サーバーエラー)'
+											})
+										}
+									} else {
+										let data = _this.options[key].find(item => item.id == result.data.id);
+										// 更新の場合
+										if (data) {
+											data = result.data;
+										// 新規の場合
+										} else {
+											_this.options[key].push(result.data);
+										}
+										_this.$message({
+											type: 'success',
+											message: result.message
+										})
+									}
+								} else {
+									_this.$message({
+										type: 'error',
+										message: result.message
+									})
+								}
+							}, function () {
+								this.$message({
+									type: 'error',
+									message: '処理に失敗しました(画面エラー)'
+								})
+							})
+						},
+
+						// ユニットデータ重複確認処理
+						duplicateConfirmationUnit(param) {
+
+							let _this = this;
+
+							return new Promise(function(resolve, reject) {
+								$.ajax({
+									type: 'get',
+									url: 'unitVerification',
+									data: param,
+									dataType: 'json',
+									contentType : 'application/json'
+								}).then(function(result) {
+									if (result.data) {
+										_this.$confirm('同一名称の登録がありますが処理を続けますか?', 'Warning', {
+											confirmButtonText: 'OK',
+											cancelButtonText: 'Cancel',
+											type: 'warning'
+										}).then(() => {
+											resolve(false);
+										}).catch(() => {
+											resolve(true);
+										});
+									} else {
+										resolve(result.data);
+									}
+
+								}, function () {
+									this.$message({
+										type: 'error',
+										message: '処理に失敗しました(画面エラー)'
+									})
+									reject();
+								})
+							});
+
+						},
+
+						// ユニット関連データ重複確認処理
+						duplicateConfirmationColumn(param, targetColumn = null) {
+
+							let url;
+							if (targetColumn == this.label.sex) {
+								url = 'sexVerification';
+							}else if (targetColumn == this.label.realm) {
+								url = 'realmVerification';
+							} else if (targetColumn == this.label.type) {
+								url = 'typeVerification';
+							} else if (targetColumn == this.label.attribute) {
+								url = 'attributeVerification';
+							} else if (targetColumn == this.label.abilities) {
+								url = 'abilityVerification';
+							} else if (targetColumn == this.label.boards) {
+								url = 'boardVerification';
+							}
+
+							let _this = this;
+
+							return new Promise(function(resolve, reject) {
+								$.ajax({
+									type: 'get',
+									url: url,
+									data: param,
+									dataType: 'json',
+									contentType : 'application/json'
+								}).then(function(result) {
+									if (result.data) {
+										_this.$confirm('同一名称の登録がありますが処理を続けますか?', 'Warning', {
+											confirmButtonText: 'OK',
+											cancelButtonText: 'Cancel',
+											type: 'warning'
+										}).then(() => {
+											resolve(false);
+										}).catch(() => {
+											resolve(true);
+										});
+									} else {
+										resolve(result.data);
+									}
+
+								}, function () {
+									this.$message({
+										type: 'error',
+										message: '処理に失敗しました(画面エラー)'
+									})
+									reject();
+								})
+							});
+
+						},
+
+						// モーダルウィンド表示処理
+						createDataModalOpen(column, slot = null) {
+							this.targetColumn = column;
+							// ボードの場合
+							if (this.targetColumn == this.label.boards) {
+								this.targetForm = {effects: []};
+
+							// アビリティの場合
+							} else if (this.targetColumn == this.label.abilities) {
+								this.targetForm = {
+										effects: [],
+										abilitySlot: slot,
+										artAbility: false
+								};
+
+							} else {
+								this.targetForm = {};
+							}
+							this.modal = true;
+						},
+
+						// フォームデータ初期化処理
+						targetFormClear() {
+							// ボードの場合
+							if (this.targetColumn == this.label.boards) {
+								this.targetForm = {effects: []};
+
+							// アビリティの場合
+							} else if (this.targetColumn == this.label.abilities) {
+								this.targetForm = {
+										effects: [],
+										artAbility: false
+								};
+
+							} else {
+								this.targetForm = {};
+							}
+						},
+
+						// モーダルクローズ処理
+						closeModal() {
+							this.modal = false;
+						},
+
+						// ユニットのレア度関連の設定処理
+						changeUnitRea(value) {
+							if (value == 5) {
+								this.abilityLen = 3;
+								this.boardQuantity = 25;
+							} else if (value == 4) {
+								this.abilityLen = 2;
+								this.boardQuantity = 50;
+							} else if (value == 3) {
+								this.abilityLen = 1;
+								this.boardQuantity = 50;
+							} else {
+								this.abilityLen = 0;
+								this.boardQuantity = 0;
+							}
+						},
+
+						changeMaxLevel(value) {
+							Vue.set(this.targetForm, 'stages', []);
+							for (let i = 1; i <= value; i++) {
+								this.targetForm.stages.push({level: i});
+							}
+						},
+						// ボード追加処理
+						boardAdd() {
+							this.unitForm.boards.push({});
+						},
+
+						// ボード削除処理
+						boardDelete() {
+							this.unitForm.boards.pop();
+						},
+
+						// エフェクト追加処理
+						effectAdd() {
+							this.targetForm.effects.push({percentage: false});
+						},
+
+						// エフェクト削除処理
+						effectDelete() {
+							this.targetForm.effects.pop();
+						},
+
+						// ユニット一覧画面へ
+						pageReturn(){
+							location.href = '/lastperiod/unitListPage';
+						}
+
+					},
+
+					created() {
+						this.unitForm = {
+							// 初期は false を設定
+							limited: false,
+							irregular: false,
+							// 空の入れ物だけ用意しておく
+							boards: []
+						};
+						if (/*[[${unit}]]*/{}) {
+							this.unitForm = /*[[${unit}]]*/{};
+							this.changeUnitRea(this.unitForm.rea);
+						}
+					}
+				})
+			/*]]>*/
+		</script>
+	</body>
+</html>

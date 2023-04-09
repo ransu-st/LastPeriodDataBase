@@ -1,0 +1,23 @@
+@charset "UTF-8";
+
+.boardList {
+	display: flex;
+}
+
+.boardAddAndDeleteBtnArea {
+	margin-left: 200px;
+}
+
+.effectAddAndDeleteBtnArea {
+	text-align: center;
+	margin-bottom: 20px;
+}
+
+.modalInputFormArea {
+	max-height: 500px;
+	overflow: auto;
+}
+
+.inputNumberLeftAlign input {
+	text-align: left !important;
+}
